@@ -25,6 +25,8 @@ from fa.jquery import utils
 from fa.jquery.renderers import ellipsys
 import logging
 
+from sqlalchemy.orm.relationships import RelationshipProperty
+
 _ = TranslationStringFactory('fa_jquery')
 
 class ModelView(Base):
@@ -69,7 +71,11 @@ class ModelView(Base):
                 sidx = fields[sidx]
                 sord = params.get('sord', 'asc').decode().lower()
                 if sord in ['asc', 'desc']:
-                    collection = collection.order_by(getattr(sidx, sord)())
+                    if isinstance(sidx.property, RelationshipProperty):
+                        for column in sidx.property.local_columns:
+                            collection = collection.order_by(getattr(column, sord)())
+                    else:
+                        collection = collection.order_by(getattr(sidx, sord)())
             if 'searchField' in params:
                 field = fields.get(params['searchField'], None)
                 if field:
